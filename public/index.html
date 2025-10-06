@@ -9,35 +9,54 @@
 <body>
   <header class="hero">
     <div class="container">
-      <div class="hero__image" role="img" aria-label="Shri Mataji Nirmala Devi"></div>
+      <div class="hero__image" role="img" aria-label="Shri Mataji Nirmala Devi">
+      <img src="./assets/img/hero.jpg" alt="Shri Mataji Nirmala Devi" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+      </div>
       <h1 class="title">Sahaja Yoga Leela Game</h1>
-      <p class="subtitle">กดเล่นเพื่อรับพร (ลีลาเกม) จากคำสอนของท่านศรีมาตาจี</p>
+      <p class="subtitle">
+        Receive a personal guidance from Shri Mataji through Leela Game. <br>
+        <span class="muted">รับ “ถ้อยคำชี้ทาง” ส่วนตัวจากท่านศรีมาตาจี ผ่านการเล่นลีลาเกม</span>
+      </p>
     </div>
   </header>
 
   <main class="content">
-    <div class="container"></div>
+    <div class="container">
       <section class="card">
-        <h2>เริ่มเล่น</h2>
-        <p class="hint">กรอกชื่อ–นามสกุล (ภาษาอังกฤษ) เพื่อให้การสุ่มมีความเป็นส่วนตัว</p>
+        <h2>Start / เริ่มเล่น</h2>
+        <p class="hint">Please enter your first and last name (English) for a personal seed. <br>
+          <span class="muted">กรอกชื่อ–นามสกุล (ภาษาอังกฤษ) เพื่อใช้สร้างค่า seed ส่วนตัว</span>
+        </p>
+
         <form id="player-form">
           <div class="row">
-            <label for="firstName">First name</label>
+            <label for="firstName">First name / ชื่อ</label>
             <input type="text" id="firstName" name="firstName" placeholder="Nirmal" required />
           </div>
           <div class="row">
-            <label for="lastName">Last name</label>
+            <label for="lastName">Last name / นามสกุล</label>
             <input type="text" id="lastName" name="lastName" placeholder="Bhakti" required />
           </div>
-          <button type="submit" class="btn btn-primary">เริ่มเล่น</button>
+          <button type="submit" class="btn btn-primary">Start / เริ่มเล่น</button>
         </form>
       </section>
 
       <section class="card" id="play-area" hidden>
         <div class="player-name" id="playerName"></div>
-        <button id="spinButton" class="btn btn-spin">กดค้างเพื่อสุ่ม (MVP: คลิกเพื่อสุ่ม)</button>
-          กดค้างเพื่อสุ่ม (MVP: คลิกเพื่อสุ่ม)
+
+        <!-- ปุ่มเล่น (ซ่อนได้หลังเฉลย) -->
+        <button id="spinButton" class="btn btn-spin" aria-live="polite">
+          <span class="btn-title">Play Leela Game</span>
+          <span class="btn-sub">Press & hold to spin — release to reveal</span>
+          <span class="spinner" aria-hidden="true"></span>
         </button>
+
+        <!-- โชว์ข้อความคูลดาวน์/เคานต์ดาวน์ -->
+        <div id="cooldownNote" class="cooldown-note hidden">
+          <strong>Please take your time to reflect.</strong><br>
+          You can play again in <span id="cooldownCountdown">--:--</span>.<br>
+          <span class="muted">โปรดใช้เวลาพิจารณาคำตอบ คุณจะเล่นได้อีกครั้งใน <span id="cooldownCountdownTH">--:--</span></span>
+        </div>
 
         <div id="resultCard" class="result-card" hidden>
           <div class="result-image-wrap">
@@ -45,18 +64,55 @@
           </div>
           <div class="result-text">
             <div class="result-title" id="resultTitle"></div>
-            <blockquote id="quoteEN" dir="ltr"></blockquote>
-            <blockquote id="quoteTH" class="muted" dir="ltr"></blockquote>
-            <div class="result-meta" id="resultMeta"></div>
+
+            <!-- แสดงผลสองภาษา -->
+            <blockquote id="quoteEN" dir="ltr" class="quote-en"></blockquote>
+            <blockquote id="quoteTH" dir="ltr" class="quote-th muted"></blockquote>
+
+            <div class="result-meta" id="resultMeta">
+              <!-- จะเติมข้อความอัตโนมัติ เช่น:
+                  Quote Date: … • Played at: …
+                  วันที่คำกล่าว: … • เวลาเล่น: … -->
+            </div>
           </div>
+
           <div class="result-actions">
-            <button id="saveCard" class="btn btn-secondary">บันทึกเป็นภาพ (PNG)</button>
-            <button id="playAgain" class="btn btn-outline">เล่นอีกครั้ง</button>
+            <button id="saveCard" class="btn btn-secondary">
+              Save as PNG / บันทึกเป็นภาพ (PNG)
+            </button>
+            <button id="playAgain" class="btn btn-outline">
+              Play Again / เล่นอีกครั้ง
+            </button>
           </div>
         </div>
       </section>
+      <!-- ========== Admin Panel (ซ่อน) ========== -->
+      <section id="adminPanel" class="card admin hidden">
+        <h3>Admin Settings (hidden)</h3>
+        <div class="row">
+          <label>Cooldown (minutes) / เวลารอก่อนเล่นซ้ำ (นาที)</label>
+          <input type="number" id="cfgCooldownMin" value="0" min="0" step="1"/>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="cfgTestingMode" checked/>
+            Testing Mode (bypass cooldown) / โหมดทดสอบ (ข้ามคูลดาวน์)
+          </label>
+        </div>
+        <div class="row">
+          <label>OpenRouter API Key (optional)</label>
+          <input type="password" id="cfgApiKey" placeholder="sk-..." />
+        </div>
+        <button id="cfgSave" class="btn btn-primary">Save / บันทึก</button>
+      </section>
     </div>
   </main>
+
+<footer class="footer">
+  <p>
+    For Sahaja Yoga activity • Built for love and joy • © Leela Game <br>
+    <span class="muted">เพื่อกิจกรรมสหจะโยคะ • สร้างด้วยความรักและความยินดี</span>
+  </p>
+</footer>
 
   <footer class="footer">
     <p>For Sahaja Yoga activity • Built for love and joy • © Leela Game</p>
