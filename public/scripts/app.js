@@ -40,16 +40,28 @@ function parseCSV(text){
 }
 
 async function loadData(){
-  // CSV
-  const csv = await fetch('./data/excerptdata.csv').then(r=>r.text());
-  QUOTES = parseCSV(csv).filter(row => row.Quote?.trim().length > 0);
+  const csvText = await fetch('./data/excerptdata.csv').then(r=>r.text());
 
-  // Images manifest
-  try{
-    IMAGES = await fetch('./assets/smjm-manifest.json').then(r=>r.json());
-  }catch(e){
-    IMAGES = [];
+  const parsed = Papa.parse(csvText, {
+    header: true,          // ใช้แถวแรกเป็นชื่อคอลัมน์
+    skipEmptyLines: true,  // ตัดบรรทัดว่าง
+    dynamicTyping: false,  // เก็บเป็นสตริง
+  });
+
+  if (parsed.errors?.length) {
+    console.warn('CSV parse errors:', parsed.errors.slice(0,3));
   }
+
+  // รองรับชื่อหัวคอลัมน์ที่เว้นวรรค/ตัวพิมพ์เล็กใหญ่ต่างกัน
+  QUOTES = parsed.data.map(row => {
+    // หา key ที่ตรงกับ Quote/Date แบบหลวม ๆ
+    const qKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'quote') ?? 'Quote';
+    const dKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'date')  ?? 'Date';
+    return {
+      Quote: (row[qKey] ?? '').toString().trim(),
+      Date:  (row[dKey]  ?? '').toString().trim(),
+    };
+  }).filter(r => r.Quote.length > 0);
 }
 
 // A1Z26 numeric value
