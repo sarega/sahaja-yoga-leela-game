@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sahaja Yoga Leela Game</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__image" role="img" aria-label="Shri Mataji Nirmala Devi"></div>
+    <h1 class="title">Sahaja Yoga Leela Game</h1>
+    <p class="subtitle">กดเล่นเพื่อรับพรยา (ลีลาเกม) จากคำสอนของท่านศรีมาตาจี</p>
+  </header>
+
+  <main class="content">
+    <section class="card">
+      <h2>เริ่มเล่น</h2>
+      <p class="hint">กรอกชื่อ–นามสกุล (ภาษาอังกฤษ) เพื่อให้การสุ่มมีความเป็นส่วนตัว</p>
+      <form id="player-form">
+        <div class="row">
+          <label for="firstName">First name</label>
+          <input type="text" id="firstName" name="firstName" placeholder="Nirmal" required />
+        </div>
+        <div class="row">
+          <label for="lastName">Last name</label>
+          <input type="text" id="lastName" name="lastName" placeholder="Bhakti" required />
+        </div>
+        <button type="submit" class="btn-primary">เริ่มเล่น</button>
+      </form>
+    </section>
+
+    <section class="card" id="play-area" hidden>
+      <div class="player-name" id="playerName"></div>
+      <button id="spinButton" class="btn-spin" aria-live="polite">
+        กดค้างเพื่อสุ่ม (MVP: คลิกเพื่อสุ่ม)
+      </button>
+
+      <div id="resultCard" class="result-card" hidden>
+        <div class="result-image-wrap">
+          <img id="resultImage" alt="Shri Mataji" />
+        </div>
+        <div class="result-text">
+          <div class="result-title" id="resultTitle"></div>
+          <blockquote id="quoteEN" dir="ltr"></blockquote>
+          <blockquote id="quoteTH" class="muted" dir="ltr"></blockquote>
+          <div class="result-meta" id="resultMeta"></div>
+        </div>
+        <div class="result-actions">
+          <button id="saveCard" class="btn-secondary">บันทึกเป็นภาพ (PNG)</button>
+          <button id="playAgain" class="btn-outline">เล่นอีกครั้ง</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>For Sahaja Yoga activity • Built for love and joy • © Leela Game</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="./scripts/app.js"></script>
+</body>
+</html>
