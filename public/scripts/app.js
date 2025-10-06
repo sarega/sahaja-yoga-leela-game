@@ -20,8 +20,9 @@ const saveCard = document.getElementById('saveCard');
 const playAgain = document.getElementById('playAgain');
 
 let player = { firstName: '', lastName: '' };
-let QUOTES = []; // {Quote, Date}
-let IMAGES = []; // ["001.jpg", "002.webp", ...]
+let QUOTES = [];
+let IMAGES = [];
+let dataReady = false;
 
 // ====== Utils ======
 // Simple CSV parser for 2 columns (Quote,Date) — assumes no embedded commas
@@ -40,29 +41,48 @@ function parseCSV(text){
 }
 
 async function loadData(){
-  const csvText = await fetch('./data/excerptdata.csv').then(r=>r.text());
+  try {
+    const res = await fetch('./data/excerptdata.csv', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
+    const csvText = await res.text();
 
-  const parsed = Papa.parse(csvText, {
-    header: true,          // ใช้แถวแรกเป็นชื่อคอลัมน์
-    skipEmptyLines: true,  // ตัดบรรทัดว่าง
-    dynamicTyping: false,  // เก็บเป็นสตริง
-  });
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+    });
 
-  if (parsed.errors?.length) {
-    console.warn('CSV parse errors:', parsed.errors.slice(0,3));
+    if (parsed.errors?.length) {
+      console.warn('CSV parse errors (first 3):', parsed.errors.slice(0,3));
+    }
+    QUOTES = parsed.data.map(row => {
+      const qKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'quote') ?? 'Quote';
+      const dKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'date')  ?? 'Date';
+      return {
+        Quote: (row[qKey] ?? '').toString().trim(),
+        Date:  (row[dKey]  ?? '').toString().trim(),
+      };
+    }).filter(r => r.Quote.length > 0);
+
+    try {
+      IMAGES = await fetch('./assets/smjm-manifest.json', { cache: 'no-store' }).then(r => r.json());
+    } catch(e) {
+      console.warn('manifest load fail:', e);
+      IMAGES = [];
+    }
+
+    dataReady = QUOTES.length > 0;
+    console.log(`Loaded quotes: ${QUOTES.length}, images listed: ${IMAGES.length}`);
+  } catch (err) {
+    console.error('loadData failed:', err);
+    alert('โหลดข้อมูลไม่สำเร็จ: กรุณาตรวจ path /data/excerptdata.csv และลองรีเฟรชอีกครั้ง');
   }
-
-  // รองรับชื่อหัวคอลัมน์ที่เว้นวรรค/ตัวพิมพ์เล็กใหญ่ต่างกัน
-  QUOTES = parsed.data.map(row => {
-    // หา key ที่ตรงกับ Quote/Date แบบหลวม ๆ
-    const qKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'quote') ?? 'Quote';
-    const dKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'date')  ?? 'Date';
-    return {
-      Quote: (row[qKey] ?? '').toString().trim(),
-      Date:  (row[dKey]  ?? '').toString().trim(),
-    };
-  }).filter(r => r.Quote.length > 0);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+});
+
 
 // A1Z26 numeric value
 function nameValue(str=''){
@@ -116,7 +136,7 @@ form?.addEventListener('submit', async (e) => {
 });
 
 spinButton?.addEventListener('click', async () => {
-  if(QUOTES.length === 0){
+  if (!dataReady) {
     alert('กำลังโหลดข้อมูล โปรดลองอีกครั้ง');
     return;
   }
