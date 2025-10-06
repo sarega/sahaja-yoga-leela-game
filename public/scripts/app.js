@@ -42,46 +42,30 @@ function parseCSV(text){
 
 async function loadData(){
   try {
-    const res = await fetch('./data/excerptdata.csv', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`CSV HTTP ${res.status}`);
-    const csvText = await res.text();
+    // โหลด JSON ที่เราแปลงไว้ล่วงหน้า
+    const quotes = await fetch('./data/quotes.json', { cache: 'no-store' });
+    if (!quotes.ok) throw new Error(`quotes.json HTTP ${quotes.status}`);
+    QUOTES = await quotes.json();
+    if (!Array.isArray(QUOTES) || QUOTES.length === 0) throw new Error('quotes.json empty');
 
-    const parsed = Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: false,
-    });
-
-    if (parsed.errors?.length) {
-      console.warn('CSV parse errors (first 3):', parsed.errors.slice(0,3));
-    }
-    QUOTES = parsed.data.map(row => {
-      const qKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'quote') ?? 'Quote';
-      const dKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'date')  ?? 'Date';
-      return {
-        Quote: (row[qKey] ?? '').toString().trim(),
-        Date:  (row[dKey]  ?? '').toString().trim(),
-      };
-    }).filter(r => r.Quote.length > 0);
-
+    // โหลดรายชื่อรูป
     try {
-      IMAGES = await fetch('./assets/smjm-manifest.json', { cache: 'no-store' }).then(r => r.json());
-    } catch(e) {
+      const r = await fetch('./assets/smjm-manifest.json', { cache: 'no-store' });
+      IMAGES = r.ok ? await r.json() : [];
+      if (!Array.isArray(IMAGES)) IMAGES = [];
+    } catch(e){
       console.warn('manifest load fail:', e);
       IMAGES = [];
     }
-
-    dataReady = QUOTES.length > 0;
+    dataReady = true;
     console.log(`Loaded quotes: ${QUOTES.length}, images listed: ${IMAGES.length}`);
-  } catch (err) {
-    console.error('loadData failed:', err);
-    alert('โหลดข้อมูลไม่สำเร็จ: กรุณาตรวจ path /data/excerptdata.csv และลองรีเฟรชอีกครั้ง');
+  } catch (e) {
+    console.error('loadData failed:', e);
+    alert('โหลดข้อมูลไม่สำเร็จ: กรุณาตรวจ public/data/quotes.json และลองรีเฟรช');
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-});
+document.addEventListener('DOMContentLoaded', loadData);
 
 
 // A1Z26 numeric value
