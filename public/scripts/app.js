@@ -5,7 +5,7 @@
 // - randomizing quote + image
 // - translating (optional)
 // - exporting card as PNG (optional)
-
+// ====== Elements ======
 const form = document.getElementById('player-form');
 const playArea = document.getElementById('play-area');
 const playerNameEl = document.getElementById('playerName');
@@ -20,8 +20,73 @@ const saveCard = document.getElementById('saveCard');
 const playAgain = document.getElementById('playAgain');
 
 let player = { firstName: '', lastName: '' };
+let QUOTES = []; // {Quote, Date}
+let IMAGES = []; // ["001.jpg", "002.webp", ...]
 
-form?.addEventListener('submit', (e) => {
+// ====== Utils ======
+// Simple CSV parser for 2 columns (Quote,Date) — assumes no embedded commas
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  const header = lines.shift().split(",").map(s=>s.trim());
+  const idxQuote = header.findIndex(h => /quote/i.test(h));
+  const idxDate  = header.findIndex(h => /date/i.test(h));
+  return lines.map(line=>{
+    // split only first comma to keep commas inside quote text (basic)
+    const firstComma = line.indexOf(",");
+    let q = line, d = "";
+    if(firstComma >= 0){ q = line.slice(0, firstComma); d = line.slice(firstComma+1); }
+    return { Quote: q.replace(/^"|"$/g,''), Date: d.replace(/^"|"$/g,'') };
+  });
+}
+
+async function loadData(){
+  // CSV
+  const csv = await fetch('./data/excerptdata.csv').then(r=>r.text());
+  QUOTES = parseCSV(csv).filter(row => row.Quote?.trim().length > 0);
+
+  // Images manifest
+  try{
+    IMAGES = await fetch('./assets/smjm-manifest.json').then(r=>r.json());
+  }catch(e){
+    IMAGES = [];
+  }
+}
+
+// A1Z26 numeric value
+function nameValue(str=''){
+  let sum = 0;
+  for(const ch of str.toUpperCase()){
+    const code = ch.charCodeAt(0);
+    if(code>=65 && code<=90) sum += (code-64);
+  }
+  return sum;
+}
+function digitalRoot(n){
+  n = Math.abs(n);
+  while(n>9){
+    n = n.toString().split('').reduce((a,b)=>a+Number(b),0);
+  }
+  return n || 1;
+}
+// Mulberry32 PRNG
+function mulberry32(seed){
+  return function(){
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Deterministic-ish seed from name + timestamp
+function makeSeed(first,last,ts){
+  const base = nameValue(first) + nameValue(last) * 31 + digitalRoot(nameValue(first)+nameValue(last))*997;
+  // fold timestamp for per-click uniqueness
+  const mix = (base ^ (ts & 0xffffffff)) >>> 0;
+  return mix || 123456789;
+}
+
+// ====== UI Flow ======
+form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(form);
   player.firstName = String(fd.get('firstName') || '').trim();
@@ -33,30 +98,50 @@ form?.addEventListener('submit', (e) => {
   playerNameEl.textContent = `${player.firstName} ${player.lastName}`;
   playArea.hidden = false;
   window.scrollTo({top: playArea.offsetTop - 12, behavior: 'smooth'});
+
+  // lazy-load data first time
+  if(QUOTES.length === 0) await loadData();
 });
 
 spinButton?.addEventListener('click', async () => {
-  // MVP demo: fake delay then reveal a placeholder result
+  if(QUOTES.length === 0){
+    alert('กำลังโหลดข้อมูล โปรดลองอีกครั้ง');
+    return;
+  }
+
   spinButton.disabled = true;
+  const labelKeep = spinButton.textContent;
   spinButton.textContent = 'กำลังสุ่ม...';
-  await new Promise(r => setTimeout(r, 900));
+  await new Promise(r => setTimeout(r, 900)); // ritual delay
 
-  // Placeholder quote
-  const exampleQuote = 'It was not very difficult for Me to open the Sahasrara...';
-  const exampleDate = '1981-05-05';
+  const ts = Date.now();
+  const seed = makeSeed(player.firstName, player.lastName, ts);
+  const rng1 = mulberry32(seed);
+  const rng2 = mulberry32(seed + 1);
 
+  // pick quote
+  const qi = Math.floor(rng1() * QUOTES.length);
+  const row = QUOTES[qi];
+
+  // pick image (fallback to hero if manifest empty)
+  let imgPath = './assets/img/hero.jpg';
+  if(Array.isArray(IMAGES) && IMAGES.length){
+    const ii = Math.floor(rng2() * IMAGES.length);
+    imgPath = `./assets/smjm/${IMAGES[ii]}`;
+  }
+
+  // Render
   resultTitle.textContent = `คำตอบของคุณ ${player.firstName} ${player.lastName}`;
-  quoteEN.textContent = exampleQuote;
-  quoteTH.textContent = '(รอระบบแปลภาษาไทย — หรือกดสวิตช์แปลในเวอร์ชั่นถัดไป)';
-  resultMeta.textContent = `Date: ${exampleDate} • Timestamp: ${new Date().toLocaleString()}`;
+  quoteEN.textContent = row.Quote || '';
+  quoteTH.textContent = '(ไทย: เปิดการแปลในรอบถัดไป หรือเตรียมไฟล์แปลล่วงหน้า)';
+  resultMeta.textContent = `Quote Date: ${row.Date || '-'} • Played at: ${new Date(ts).toLocaleString()}`;
 
-  // Placeholder image
-  resultImage.src = './assets/img/hero.jpg';
+  resultImage.src = imgPath;
   resultImage.alt = 'Shri Mataji';
 
   resultCard.hidden = false;
   spinButton.disabled = false;
-  spinButton.textContent = 'กดค้างเพื่อสุ่ม (MVP: คลิกเพื่อสุ่ม)';
+  spinButton.textContent = labelKeep;
 });
 
 playAgain?.addEventListener('click', () => {
