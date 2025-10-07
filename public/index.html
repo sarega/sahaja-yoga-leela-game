@@ -22,7 +22,7 @@
 
   <main class="content">
     <div class="container">
-      <section class="card">
+      <section class="card" id="input-card">
         <h2>Start / เริ่มเล่น</h2>
         <p class="hint">Please enter your first and last name (English) for a personal seed. <br>
           <span class="muted">กรอกชื่อ–นามสกุล (ภาษาอังกฤษ) เพื่อใช้สร้างค่า seed ส่วนตัว</span>
@@ -59,6 +59,7 @@
         </div>
 
         <div id="resultCard" class="result-card" hidden>
+          <div class="card-title export-only">Sahaja Yoga Leela Game</div>
           <div class="result-image-wrap">
             <img id="resultImage" alt="Shri Mataji" />
           </div>
@@ -74,6 +75,25 @@
                   Quote Date: … • Played at: …
                   วันที่คำกล่าว: … • เวลาเล่น: … -->
             </div>
+          </div>
+          
+          <!-- Export-only Card (Portrait, A4-like) -->
+          <div id="exportCard" class="export-card hidden" aria-hidden="true">
+            <div class="ex-header">
+              <div class="ex-photo-wrap">
+                <img id="exImage" alt="Shri Mataji">
+              </div>
+              <div class="ex-title">Sahaja Yoga Leela Game</div>
+              <div class="ex-sub">คำตอบของคุณ <span id="exName"></span> / Your message</div>
+            </div>
+
+            <div class="ex-quote">
+              <blockquote id="exQuoteEN" class="en" dir="ltr"></blockquote>
+              <blockquote id="exQuoteTH" class="th" dir="ltr"></blockquote>
+            </div>
+
+            <div id="exMeta" class="ex-meta"></div>
+            <div class="ex-footer">For Sahaja Yoga activity • Built for love and joy</div>
           </div>
 
           <div class="result-actions">
@@ -94,7 +114,7 @@
           <input type="number" id="cfgCooldownMin" value="0" min="0" step="1"/>
         </div>
         <div class="row">
-          <label><input type="checkbox" id="cfgTestingMode" checked/>
+          <label><input type="checkbox" id="cfgTestingMode" unchecked/>
             Testing Mode (bypass cooldown) / โหมดทดสอบ (ข้ามคูลดาวน์)
           </label>
         </div>
@@ -114,12 +134,11 @@
   </p>
 </footer>
 
-  <footer class="footer">
-    <p>For Sahaja Yoga activity • Built for love and joy • © Leela Game</p>
-  </footer>
 
   <!-- Scripts -->
-   <!-- PapaParse: robust CSV parser -->
-<script src="./scripts/app.js" defer></script>
+  <!-- html-to-image (primary) -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js?v=2" defer></script>
+  <script src="./scripts/app.js?v=rev-stable" defer></script>
+
 </body>
 </html>

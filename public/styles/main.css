@@ -17,19 +17,17 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
 .hero{padding:28px 0; text-align:center}
 .hero__image{
   width:140px; height:140px; border-radius:999px; margin:0 auto 12px;
-  /* แสดงรูป */
-  background: url("./assets/img/hero.jpg") center/cover no-repeat;
-  /* เงานุ่ม */
   box-shadow: 0 8px 30px rgba(0,0,0,.08);
   position: relative;
+}
+@media (max-width: 860px){
+  .hero__image{ width:120px; height:120px; }
 }
 .hero__image::after{
   content:""; position:absolute; inset:0; border-radius:inherit;
   background: radial-gradient(ellipse at 30% 15%, rgba(255,255,255,.35), transparent 60%);
 }
-@media (max-width: 860px){
-  .hero__image{ width:120px; height:120px; }
-}
+
 .title{margin:0; font-weight:800; letter-spacing:.2px}
 .subtitle{margin:6px 0 0; color:var(--muted)}
 
@@ -45,7 +43,7 @@ input[type="text"]:focus{border-color:var(--accent-2); box-shadow:0 0 0 4px var(
 .btn-outline{background:transparent; border:1px solid #d1d5db}
 
 .result-card{display:grid; grid-template-columns: 260px 1fr; gap:16px; align-items:start; margin-top:10px}
-.result-image-wrap{width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:14px; background:#f3f4f6}
+.result-image-wrap{width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:14px; background:#ffffff}
 .result-image-wrap img{width:100%; height:100%; object-fit:cover}
 .result-title{font-weight:800; margin-bottom:2px}
 blockquote{margin:10px 0; padding-left:12px; border-left:4px solid #f59e0b}
@@ -114,3 +112,103 @@ blockquote{margin:10px 0; padding-left:12px; border-left:4px solid #f59e0b}
 .admin input[type="number"], .admin input[type="password"]{
   padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; width:100%;
 }
+
+/* ---------- Export (Portrait, A4-like) ---------- */
+/* A4 @ 96dpi ≈ 794x1123px — เราจะ fix เฉพาะความกว้าง ให้สูงยืดตามเนื้อหา */
+.export-card{
+  width: 794px;            /* คงที่เพื่อให้สัดส่วนพิมพ์สวย */
+  background:#fff;
+  color:#111;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: none;        /* ไม่เอาเงาเวลา export */
+  margin: 0 auto;
+  font-size: 16px;
+}
+/* .ex-photo-wrap{ width:100%; height:420px; border-radius:12px; overflow:hidden; background:#f3f4f6; } */
+.ex-photo-wrap{ width:100%; height:420px; border-radius:12px; overflow:hidden; background:#ffffff; }
+.ex-photo-wrap img{ width:100%; height:100%; object-fit:cover; }
+.ex-title{ text-align:center; font-weight:800; font-size:22px; margin-top:14px; }
+.ex-sub{ text-align:center; font-weight:700; margin-top:6px; }
+.ex-quote blockquote{ margin:18px 0; padding-left:12px; border-left:6px solid #f59e0b; line-height:1.6; }
+.ex-quote .en{ font-size:16px; }
+.ex-quote .th{ color:#374151; }
+.ex-meta{ text-align:center; font-size:12px; color:#6b7280; margin-top:10px; }
+.ex-footer{ text-align:center; font-size:11px; color:#9ca3af; margin-top:10px; }
+
+/* ---------- Print styles (ถ้าผู้ใช้สั่งพิมพ์) ---------- */
+@page { size: A4 portrait; margin: 12mm; }
+@media print{
+  body{ background:#fff; }
+  .hero, .footer, .content .card{ display:none !important; }
+  #exportCard{ display:block !important; margin:0 auto; }
+}
+
+/* ---------- เพิ่มระยะขอบของการ์ดบนมือถือ (หน้าจอดู) ---------- */
+.result-card{
+  background:#fff;          /* สำคัญมาก */
+  padding:16px;
+  border-radius:16px;
+}
+@media (max-width: 860px){
+  .content{ padding: 8px 0 24px; }
+  .card{ margin: 0px 0px; }
+}
+
+/* ป้องกันอาการความสูง 0 เวลาเซฟ */
+.export-card {
+  min-height: 420px;
+}
+
+/* ยังไม่มีผลลัพธ์ → ซ่อนการ์ดผลลัพธ์ทั้งหมด */
+#play-area:not(.has-result) #resultCard{
+  display: none !important;
+}
+
+/* กันกระพริบระหว่าง transition */
+#resultCard{ will-change: opacity, transform; }
+
+/* ซ่อนไว้ตามปกติ */
+.export-only { display: none; }
+
+/* ตอนเซฟ เราจะใส่คลาสให้ body เพื่อโชว์พวก export-only */
+body.exporting .export-only { display: block; }
+
+.card-title{
+  text-align: center;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: .2px;
+  margin: 4px 0 10px;
+}
+
+
+/* กรอบรูป (ถ้ามีคลาสอื่นใช้กับรูป ให้ใส่ซ้ำด้วย) */
+.result-photo{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f2f4f7;         /* สีรองเวลารูปเป็น contain */
+  border-radius:18px;
+  padding:8px;
+}
+
+/* รูปท่านศรีมาตาจี: ไม่ครอป, รักษาอัตราส่วนเดิม */
+#resultImage{
+  display:block;
+  width:100%;
+  height:100% /* auto !important;        สำคัญ: ยกเลิกความสูงตายตัว */
+  object-fit: contain !important;
+  border-radius:14px;
+}
+
+/* ลิมิตความสูง เพื่อไม่ให้รูปยาวเกินไป */
+@media (max-width: 640px){
+  #resultImage{ max-height: 60vh; }
+}
+@media (min-width: 641px){
+  #resultImage{ max-height: 420px; } /* ปรับตามดีไซน์คอลัมน์ขวา */
+}
+
+/* ถ้าคอลัมน์ใช้ grid/สองคอลัมน์ ให้รูปไม่ยืดตามความสูงของคอลัมน์ */
+.result-photo{ align-self: start; }
