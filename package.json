@@ -1,11 +1,9 @@
 {
-  "devDependencies": {
-    "csv-parse": "^6.1.0"
-  }
-}
-
-{
+  "name": "sahaja-yoga-leela-game",
+  "private": true,
+  "version": "0.1.0",
   "scripts": {
-    "manifest": "node scripts/scan_smjm.cjs"
+    "manifest": "node scripts/scan_smjm.cjs",
+    "dev": "npx http-server public -p 5173 -c-1"
   }
 }
