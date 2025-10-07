@@ -197,7 +197,7 @@ body.exporting .export-only { display: block; }
 #resultImage{
   display:block;
   width:100%;
-  height:100% /* auto !important;        สำคัญ: ยกเลิกความสูงตายตัว */
+  height:100%; /* auto !important;        สำคัญ: ยกเลิกความสูงตายตัว */
   object-fit: contain !important;
   border-radius:14px;
 }

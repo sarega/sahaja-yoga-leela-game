@@ -15,7 +15,8 @@ const PLACEHOLDER_IMG =
     '</svg>'
   );
 
-const CONFIG_KEY = 'leela:config';
+// const CONFIG_KEY = 'leela:config';
+const CONFIG_KEY = 'leela:config:v2';
 const LASTPLAY_PREFIX = 'leela:lastPlay:';
 
 // ========== DOM ==========
@@ -72,26 +73,40 @@ const CONFIG = loadConfig();  // { cooldownMin, testingMode, apiKey }
 function loadConfig(){
   try{
     const raw = localStorage.getItem(CONFIG_KEY);
-    if(!raw) return { cooldownMin: 1, testingMode: true, apiKey: '' };
+    if(!raw) return { cooldownMin: 1, testingMode: false, apiKey: '' }; // <-- false
     const obj = JSON.parse(raw);
     return {
       cooldownMin: Number(obj.cooldownMin) || 0,
-      testingMode: !!obj.testingMode,
+      testingMode: obj.testingMode === true ? true : false,            // <-- บังคับ boolean
       apiKey: obj.apiKey || ''
     };
   }catch(e){
-    return { cooldownMin: 0, testingMode: true, apiKey: '' };
+    return { cooldownMin: 0, testingMode: false, apiKey: '' };         // <-- false
   }
 }
+
 function saveConfig(){
   const obj = {
     cooldownMin: Number(cfgCooldown.value) || 0,
-    testingMode: cfgTesting.checked,
+    testingMode: !!cfgTesting.checked,
     apiKey: (cfgApiKey.value || '').trim()
   };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(obj));
+
+  // sync เข้า CONFIG ที่ประกาศไว้ด้านบน
+  CONFIG.cooldownMin = obj.cooldownMin;
+  CONFIG.testingMode = obj.testingMode;
+  CONFIG.apiKey      = obj.apiKey;
+
+  // คำนวณคูลดาวน์ใหม่ทันที
+  const now = Date.now();
+  const remain = msLeft(now);
+  if(remain > 0){ hideSpin(); cooldownNote.classList.remove('hidden'); startCountdown(remain); }
+  else { cooldownNote.classList.add('hidden'); showSpin(); }
+
   alert('Saved / บันทึกแล้ว');
 }
+
 cfgSave?.addEventListener('click', saveConfig);
 
 // ========== Helpers ==========
@@ -702,7 +717,7 @@ playAgain?.addEventListener('click', () => {
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   if(cfgCooldown) cfgCooldown.value = CONFIG.cooldownMin;
-  if(cfgTesting)  cfgTesting.checked = CONFIG.testingMode;
+  if(cfgTesting)  cfgTesting.checked = CONFIG.testingMode; // จะเป็น false โดยดีฟอลต์ใหม่
   if(cfgApiKey)   cfgApiKey.value = CONFIG.apiKey;
   loadData();
   attachHoldToSpin();

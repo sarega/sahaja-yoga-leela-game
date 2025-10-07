@@ -3,3 +3,9 @@
     "csv-parse": "^6.1.0"
   }
 }
+
+{
+  "scripts": {
+    "manifest": "node scripts/scan_smjm.cjs"
+  }
+}
