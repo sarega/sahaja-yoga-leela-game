@@ -2,13 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-<<<<<<< HEAD
     branches: [ main ]  # ถ้าใช้สาขาอื่น เปลี่ยนชื่อสาขาตรงนี้
   workflow_dispatch:     # เผื่อกดรันเองได้
-=======
-    branches: [ main ]
-  workflow_dispatch:
->>>>>>> 48b56d185c783b3b3178fbc08c5dac3a78feee40
 
 permissions:
   contents: read
@@ -26,21 +21,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - name: Checkout
         uses: actions/checkout@v4
 
       # ✅ STATIC ONLY: อัปโหลดโฟลเดอร์ public ตรงๆ (ไม่มี build ใดๆ)
-=======
-      - uses: actions/checkout@v4
-      # ถ้าคุณมีสคริปต์สร้าง manifest ให้รันที่นี่ด้วย เช่น:
-      # - run: npm ci && npm run manifest
->>>>>>> 48b56d185c783b3b3178fbc08c5dac3a78feee40
       - name: Upload public dir
         uses: actions/upload-pages-artifact@v3
         with:
           path: public
-<<<<<<< HEAD
 
       # ถ้า "ต้อง" สร้าง manifest ตอน build (ส่วนมากคุณไม่ต้องแล้ว)
       # - name: Setup Node
@@ -51,8 +39,6 @@ jobs:
       # - uses: actions/upload-pages-artifact@v3
       #   with: { path: public }
 
-=======
->>>>>>> 48b56d185c783b3b3178fbc08c5dac3a78feee40
       - name: Deploy to Pages
         id: deployment
         uses: actions/deploy-pages@v4
