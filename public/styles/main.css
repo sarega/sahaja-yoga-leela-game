@@ -241,3 +241,32 @@ body.exporting .export-only { display: block; }
 
 /* ถ้าคอลัมน์ใช้ grid/สองคอลัมน์ ให้รูปไม่ยืดตามความสูงของคอลัมน์ */
 .result-photo{ align-self: start; }
+
+
+.intro-text {
+  text-align: justify;
+  line-height: 1.6;
+  font-size: 0.98rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.intro-text h3 {
+  text-align: center;
+  font-weight: 800;
+  color: var(--accent);
+  margin-top: 0;
+}
+
+.intro-text hr {
+  border: none;
+  border-top: 2px solid #f5d48a;
+  margin: 1.5rem auto;
+  width: 50%;
+}
+
+.intro-text p.note {
+  font-style: italic;
+  color: #666;
+  text-align: center;
+}

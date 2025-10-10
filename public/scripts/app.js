@@ -15,8 +15,8 @@ const PLACEHOLDER_IMG =
     '</svg>'
   );
 
-// const CONFIG_KEY = 'leela:config';
-const CONFIG_KEY = 'leela:config:v2';
+const cfgDailyLock = document.getElementById('cfgDailyLock');
+const CONFIG_KEY = 'leela:config:v3'; // bump เวอร์ชัน
 const LASTPLAY_PREFIX = 'leela:lastPlay:';
 
 // ========== DOM ==========
@@ -73,15 +73,16 @@ const CONFIG = loadConfig();  // { cooldownMin, testingMode, apiKey }
 function loadConfig(){
   try{
     const raw = localStorage.getItem(CONFIG_KEY);
-    if(!raw) return { cooldownMin: 1, testingMode: false, apiKey: '' }; // <-- false
+    if(!raw) return { cooldownMin: 0, testingMode: false, dailyLock: true, apiKey: '' };
     const obj = JSON.parse(raw);
     return {
       cooldownMin: Number(obj.cooldownMin) || 0,
-      testingMode: obj.testingMode === true ? true : false,            // <-- บังคับ boolean
+      testingMode: !!obj.testingMode,
+      dailyLock:   obj.dailyLock === undefined ? true : !!obj.dailyLock, // ดีฟอลต์ "เปิด"
       apiKey: obj.apiKey || ''
     };
   }catch(e){
-    return { cooldownMin: 0, testingMode: false, apiKey: '' };         // <-- false
+    return { cooldownMin: 0, testingMode: false, dailyLock: true, apiKey: '' };
   }
 }
 
@@ -89,16 +90,18 @@ function saveConfig(){
   const obj = {
     cooldownMin: Number(cfgCooldown.value) || 0,
     testingMode: !!cfgTesting.checked,
+    dailyLock:   !!cfgDailyLock.checked,
     apiKey: (cfgApiKey.value || '').trim()
   };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(obj));
 
-  // sync เข้า CONFIG ที่ประกาศไว้ด้านบน
+  // sync ตัวแปรในหน่วยความจำ
   CONFIG.cooldownMin = obj.cooldownMin;
   CONFIG.testingMode = obj.testingMode;
+  CONFIG.dailyLock   = obj.dailyLock;
   CONFIG.apiKey      = obj.apiKey;
 
-  // คำนวณคูลดาวน์ใหม่ทันที
+  // รีคำนวณสถานะปุ่ม/คูลดาวน์ทันที
   const now = Date.now();
   const remain = msLeft(now);
   if(remain > 0){ hideSpin(); cooldownNote.classList.remove('hidden'); startCountdown(remain); }
@@ -108,6 +111,80 @@ function saveConfig(){
 }
 
 cfgSave?.addEventListener('click', saveConfig);
+
+// ===== Persist last result per player (today) =====
+const LASTRESULT_PREFIX = 'leela:lastResult:';
+function lastResultKey(){ return LASTRESULT_PREFIX + playerKey(); }
+
+// เที่ยงคืนถัดไปตามเวลาเครื่องผู้ใช้
+function nextLocalMidnight(ts = Date.now()){
+  const d = new Date(ts);
+  d.setHours(24,0,0,0);
+  return d.getTime();
+}
+
+// ยังอยู่ในช่วงล็อกเดียวกันหรือไม่ (ก่อนเที่ยงคืนถัดไป)
+function isSameLockPeriod(ts){
+  return Date.now() < nextLocalMidnight(ts);
+}
+
+// โชว์ผลจาก row/imgPath/ts ที่มีอยู่ (ใช้ตอน restore)
+function renderExistingResult({ row, imgPath, ts }){
+  resultTitle.textContent = `คำสอนที่ถูกเลือกมาสำหรับคุณ ${player.firstName} ${player.lastName} / This quote has been chosen for you`;
+  quoteEN.textContent = row.Quote || '';
+  quoteTH.textContent = row.Translated || '';
+
+  const qEN = formatQuoteDate(row.Date, 'en');
+  const qTH = formatQuoteDate(row.Date, 'th');
+  const pEN = formatPlayedAt(ts, 'en');
+  const pTH = formatPlayedAt(ts, 'th');
+  resultMeta.innerHTML =
+    `Quote Date: ${qEN} • Played at: ${pEN}<br>` +
+    `วันที่คำกล่าว: ${qTH} • เวลาเล่น: ${pTH}`;
+
+  // ภาพบนการ์ด (พร้อม CORS)
+  resultImage.crossOrigin = 'anonymous';
+  resultImage.decoding = 'sync';
+  resultImage.loading  = 'eager';
+  resultImage.onerror  = () => { resultImage.onerror = null; resultImage.src = PLACEHOLDER_IMG; };
+  resultImage.src      = imgPath;
+
+  // ภาพฝั่ง export (ถ้ามี)
+  if (exImage){
+    exImage.crossOrigin = 'anonymous';
+    exImage.decoding = 'sync';
+    exImage.loading  = 'eager';
+    exImage.onerror  = null;
+    exImage.src      = imgPath;
+  }
+
+  // ให้ฟังก์ชันเซฟรู้ว่ารูปพร้อมเมื่อไหร่
+  resultImgReady = waitImageReady(resultImage);
+
+  // แสดงการ์ด + เปิดปุ่มบันทึก
+  resultCard.hidden = false;
+  playArea.classList.add('has-result');
+  if (saveCard) saveCard.disabled = false;   // <-- เปิดปุ่ม Save ที่นี่
+
+  hideSpin();
+
+  // ตั้ง lastPlay และนับถอยหลังตามโหมดล็อก
+  setLastPlay(ts);
+  const remain = msLeft(Date.now());
+  if (remain > 0){
+    cooldownNote.classList.remove('hidden');
+    startCountdown(remain);
+    // (ออปชัน) ซ่อนปุ่มเล่นซ้ำถ้าล็อกวันละครั้ง
+    playAgain?.classList.add('hidden');
+  } else {
+    cooldownNote.classList.add('hidden');
+    playAgain?.classList.remove('hidden');
+    playAgain.disabled = true; // ให้ผู้ใช้เซฟก่อน
+  }
+
+  // อัพเดต lastResult ให้ชื่อไฟล์เซฟถูกต้อง
+  lastResult = { qi: QUOTES.indexOf(row), img: (imgPath.split('/').pop() || ''), ts };
+}
 
 // ========== Helpers ==========
 function waitNextFrame(){ return new Promise(r => requestAnimationFrame(()=>r())); }
@@ -156,6 +233,72 @@ function digitalRoot(n){
   while(n>9) n = n.toString().split('').reduce((a,b)=>a+Number(b),0);
   return n || 1;
 }
+//----- RNG 
+
+// ====== Daily shuffle + No-repeat helpers ======
+function todayStr(){
+  const d = new Date();  // local time
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const da= String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+function makeDaySeed(dayStr){ // simple FNV-ish hash
+  let h = 2166136261 >>> 0;
+  for (const c of dayStr) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); h >>>= 0; }
+  return h || 0x9e3779b9;
+}
+function dailyPermutation(n, seedStr=todayStr()){
+  const arr = Array.from({length:n}, (_,i)=>i);
+  const rng = mulberry32(makeDaySeed(seedStr));
+  for (let i=n-1; i>0; i--){
+    const j = Math.floor(rng() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+// เปลี่ยนชื่อ→เลข (คงที่ต่อผู้เล่น)
+function nameSlotForName(n, first='', last=''){
+  const s = `${first} ${last}`.trim().toLowerCase();
+  let h=0; for (const ch of s){ h = ((h<<5)-h) + ch.charCodeAt(0); h|=0; }
+  return Math.abs(h) % Math.max(1,n);
+}
+
+// --- No-repeat window (ต่อผู้เล่น บนอุปกรณ์นี้) ---
+const HISTORY_PREFIX = 'leela:hist:';   // key ต่อผู้เล่น
+const NO_REPEAT_DAYS = 7;               // กันซ้ำ 7 วันล่าสุด
+const MAX_TRIES = 4;
+
+function playerHistKey(){               // reuse playerKey() ของคุณได้ แต่แยกไว้ให้ชัด
+  return HISTORY_PREFIX + (playerKey?.() || 'anon');
+}
+function getHistory(){
+  try{
+    const raw = localStorage.getItem(playerHistKey());
+    const arr = raw ? JSON.parse(raw) : [];
+    const cutoff = Date.now() - NO_REPEAT_DAYS*24*60*60*1000;
+    return arr.filter(x => Number(x?.ts)||0 >= cutoff);
+  }catch{ return []; }
+}
+function pushHistory(qi){
+  const arr = getHistory();
+  arr.push({ qi, ts: Date.now() });
+  while (arr.length > 64) arr.shift();
+  localStorage.setItem(playerHistKey(), JSON.stringify(arr));
+}
+function pickNonRepeatingIndex(baseQi, perm){
+  const used = new Set(getHistory().map(x=>x.qi));
+  if (!used.has(baseQi)) return baseQi;
+  let pos = perm.indexOf(baseQi);
+  for (let t=0; t<MAX_TRIES; t++){
+    pos = (pos + 1) % perm.length;
+    const cand = perm[pos];
+    if (!used.has(cand)) return cand;
+  }
+  return baseQi; // ยอมซ้ำถ้าจำเป็น
+}
+
+// Seeded RNG
 function mulberry32(seed){
   return function(){
     let t = seed += 0x6D2B79F5;
@@ -287,23 +430,30 @@ function playerKey(){
   let h=0; for(const c of name){ h=((h<<5)-h)+c.charCodeAt(0); h|=0; }
   return LASTPLAY_PREFIX + h;
 }
+
+function nextLocalMidnight(ts = Date.now()){
+  const d = new Date(ts);
+  d.setHours(24,0,0,0);   // ข้ามไป 00:00 วันถัดไป ตามโซนของเครื่องผู้ใช้
+  return d.getTime();
+}
+
 function getLastPlay(){ const raw = localStorage.getItem(playerKey()); return raw ? Number(raw) : 0; }
 function setLastPlay(ts){ localStorage.setItem(playerKey(), String(ts)); }
-function msLeft(now){
-  const cd = (Number(CONFIG.cooldownMin)||0) * 60_000;
-  if(CONFIG.testingMode || cd<=0) return 0;
-  const last = getLastPlay();
-  const until = last + cd;
-  return Math.max(0, until - now);
-}
-let cdTimer = null;
-function startCountdown(remMs){
-  stopCountdown(); updateCountdown(remMs);
-  cdTimer = setInterval(()=>{
-    remMs -= 1000;
-    if(remMs <= 0){ stopCountdown(); showSpin(); cooldownNote.classList.add('hidden'); }
-    else updateCountdown(remMs);
-  }, 1000);
+function msLeft(now = Date.now()){
+  if (CONFIG.testingMode) return 0;   // โหมดทดสอบ = ไม่ล็อก
+
+  const last = getLastPlay();         // millis หรือ 0
+  if (!last) return 0;
+
+  if (CONFIG.dailyLock){              // โหมด "วันละครั้ง"
+    const lockUntil = nextLocalMidnight(last);
+    return Math.max(0, lockUntil - now);
+  } else {                            // โหมด "คูลดาวน์เป็นนาที"
+    const cd = (Number(CONFIG.cooldownMin)||0) * 60_000;
+    if (cd <= 0) return 0;
+    const until = last + cd;
+    return Math.max(0, until - now);
+  }
 }
 function stopCountdown(){ if(cdTimer){ clearInterval(cdTimer); cdTimer=null; } }
 function updateCountdown(ms){
@@ -370,32 +520,51 @@ function attachHoldToSpin(){
 async function revealLeelaResultOnce(){
   if (isRevealing) return;
   isRevealing = true;
-  // preRenderedCanvas = null; // รีเซ็ต Canvas เก่า
 
   try{
     if (!dataReady || QUOTES.length === 0){
-      alert('Data not ready / ข้อมูลยังโหลดไม่เสร็จ'); return;
+      alert('Data not ready / ข้อมูลยังโหลดไม่เสร็จ');
+      return;
     }
 
+    // --- Daily shuffle + No-repeat ---
     const ts = Date.now();
-    const seed = makeSeed(player.firstName, player.lastName, ts);
-    const rng1 = mulberry32(seed);
-    const rng2 = mulberry32(seed + 1);
 
-    const qi = Math.floor(rng1() * QUOTES.length);
+    // เคลียร์ผลเดิมของผู้เล่นนี้ (เตรียมบันทึกผลใหม่)
+    try { localStorage.removeItem(lastResultKey()); } catch(_){}
+
+    // 1) permutation รายวัน
+    const quotePerm = dailyPermutation(QUOTES.length);
+    const imagePerm = (Array.isArray(IMAGES) && IMAGES.length)
+      ? dailyPermutation(IMAGES.length)
+      : [];
+
+    // 2) map ชื่อ → slot วันนี้ (คงที่ต่อผู้เล่น)
+    const slot = nameSlotForName(QUOTES.length, player.firstName, player.lastName);
+
+    // 3) base index
+    const baseQi = quotePerm[slot];
+
+    // 4) กันซ้ำช่วง X วัน
+    const qi  = pickNonRepeatingIndex(baseQi, quotePerm);
     const row = QUOTES[qi];
 
+    // 5) รูป (daily shuffle เช่นกัน)
     let imgPath = './assets/img/hero.jpg';
-    if(Array.isArray(IMAGES) && IMAGES.length){
-      const ii = Math.floor(rng2() * IMAGES.length);
+    if (imagePerm.length){
+      const imgSlot = (slot + 7) % imagePerm.length;
+      const ii = imagePerm[imgSlot];
       imgPath = `./assets/smjm/${IMAGES[ii]}`;
     }
+
+    // 6) บันทึกประวัติ no-repeat และ lastResult
+    pushHistory(qi);
     lastResult = { qi, img: (imgPath.split('/').pop() || ''), ts };
 
-    // --- inline image to Data URL (first-try reliable capture) ---
+    // --- inline image (เสถียรสำหรับการเซฟ) ---
     const inlinedImg = await toDataURL(imgPath);
 
-    // Fill the on-screen card
+    // === เติมการ์ดหน้าจอ ===
     resultTitle.textContent = `คำสอนที่ถูกเลือกมาสำหรับคุณ ${player.firstName} ${player.lastName} / This quote has been chosen for you`;
     quoteEN.textContent = row.Quote || '';
     quoteTH.textContent = row.Translated || '(Thai translation unavailable / ยังไม่มีคำแปล)';
@@ -404,63 +573,58 @@ async function revealLeelaResultOnce(){
     const qTH = formatQuoteDate(row.Date, 'th');
     const pEN = formatPlayedAt(ts, 'en');
     const pTH = formatPlayedAt(ts, 'th');
-
     resultMeta.innerHTML =
       `Quote Date: ${qEN} • Played at: ${pEN}<br>` +
       `วันที่คำกล่าว: ${qTH} • เวลาเล่น: ${pTH}`;
 
-
-    // On-screen image
+    // รูปบนการ์ด
     resultImage.decoding = 'sync';
     resultImage.loading  = 'eager';
     resultImage.onerror  = () => { resultImage.onerror = null; resultImage.src = PLACEHOLDER_IMG; };
     resultImage.src      = inlinedImg;
 
-    // ถ้ายังมี exImage ใน DOM ให้ตั้งเป็นรูปเดียวกันเพื่อกัน error event มากวน
-    if (exImage) {
+    // รูปใน export (ถ้ามี)
+    if (exImage){
       exImage.decoding = 'sync';
       exImage.loading  = 'eager';
       exImage.onerror  = null;
       exImage.src      = inlinedImg;
     }
-    console.log(`[DEBUG-REVEAL] Image SRC set to Data URL.`);
 
-    const imagesToWait = [resultImage];
-      if (exportCard && exImage) {
-        imagesToWait.push(exImage);
-    }
-    // ให้ปุ่ม Save รอจนรูปพร้อมจริง
-       // ให้ปุ่ม Save รอจนรูปพร้อมจริง
+    // ให้ save รอรูปพร้อมจริง
     resultImgReady = waitImageReady(resultImage);
 
-    // แสดงการ์ดผลลัพธ์เมื่อพร้อม
+    // แสดงผล/อัปเดต UI
     resultCard.hidden = false;
     playArea.classList.add('has-result');
-
-    // เปิดใช้ปุ่มหลังมีผลลัพธ์
-    if (saveCard) saveCard.disabled = false;
-    if (playAgain) playAgain.disabled = false;
     hideSpin();
+
+    // เซฟเวลาล่าสุดสำหรับคูลดาวน์
     setLastPlay(ts);
-    // 💡 NEW: ตรวจสอบและเริ่ม Cooldown ทันที
-    const now = Date.now();
-    const remain = msLeft(now);
-    if(remain > 0){
-        cooldownNote.classList.remove('hidden');
-        startCountdown(remain);
-        // 💡 NEW: ซ่อนปุ่ม Play Again ทันทีเมื่อมี Cooldown
-        playAgain.classList.add('hidden'); 
+
+    // เซฟผลล่าสุดลง localStorage เพื่อ restore ตอน reload
+    try { localStorage.setItem(lastResultKey(), JSON.stringify(lastResult)); } catch(_){}
+
+    // อัปเดตสถานะคูลดาวน์ + ปุ่ม
+    const remain = msLeft(Date.now());
+    if (remain > 0){
+      cooldownNote.classList.remove('hidden');
+      startCountdown(remain);
+      playAgain?.classList.add('hidden');     // ซ่อนถ้าถูกล็อก
     } else {
-        cooldownNote.classList.add('hidden');
-        // 💡 NEW: แสดงและ Disable ปุ่ม Play Again ทันที (ให้ผู้ใช้ Save ก่อน)
-        playAgain.classList.remove('hidden'); 
-        playAgain.disabled = true; // Disable ไว้ก่อน
+      cooldownNote.classList.add('hidden');
+      playAgain?.classList.remove('hidden');  // โชว์แต่ปิดไว้ ให้ user เซฟก่อน
+      playAgain.disabled = true;
     }
 
+    // เปิดใช้ปุ่มบันทึก
+    if (saveCard) saveCard.disabled = false;
+
   } finally {
-    setTimeout(()=>{ isRevealing = false; }, 200);
+    setTimeout(() => { isRevealing = false; }, 200);
   }
 }
+
 
 // ========== Save as PNG (screen-cap resultCard) ==========
 saveCard?.addEventListener('click', async () => {
@@ -648,6 +812,25 @@ form?.addEventListener('submit', async (e) => {
 
   if(QUOTES.length === 0) await loadData();
 
+  // --- Restore today's result if exists for this player ---
+  try{
+    const savedRaw = localStorage.getItem(lastResultKey());
+    if (savedRaw){
+      const saved = JSON.parse(savedRaw);
+      // ต้องมี qi และยังอยู่ในช่วงล็อกเดียวกัน (วันนี้)
+      if (saved && typeof saved.qi === 'number' && QUOTES[saved.qi] && isSameLockPeriod(saved.ts)){
+        const row = QUOTES[saved.qi];
+        // รองรับทั้งกรณีที่เก็บเป็น "ชื่อไฟล์" หรือพาธเต็ม
+        let imgPath = './assets/img/hero.jpg';
+        if (saved.img){
+          imgPath = saved.img.includes('/') ? saved.img : `./assets/smjm/${saved.img}`;
+        }
+        renderExistingResult({ row, imgPath, ts: saved.ts });
+        return; // จบฟังก์ชัน submit เลย ไม่ต้องโชว์ปุ่มเล่น
+      }
+    }
+  }catch(_){}
+
   const now = Date.now();
   const remain = msLeft(now);
   if(remain > 0){
@@ -701,9 +884,10 @@ playAgain?.addEventListener('click', () => {
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
-  if(cfgCooldown) cfgCooldown.value = CONFIG.cooldownMin;
-  if(cfgTesting)  cfgTesting.checked = CONFIG.testingMode; // จะเป็น false โดยดีฟอลต์ใหม่
-  if(cfgApiKey)   cfgApiKey.value = CONFIG.apiKey;
+  if(cfgCooldown)  cfgCooldown.value = CONFIG.cooldownMin;
+  if(cfgTesting)   cfgTesting.checked = CONFIG.testingMode;
+  if(cfgDailyLock) cfgDailyLock.checked = CONFIG.dailyLock;   // ⬅️ ใหม่
+  if(cfgApiKey)    cfgApiKey.value = CONFIG.apiKey;
   loadData();
   attachHoldToSpin();
 });
