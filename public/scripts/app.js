@@ -396,7 +396,7 @@ async function revealLeelaResultOnce(){
     const inlinedImg = await toDataURL(imgPath);
 
     // Fill the on-screen card
-    resultTitle.textContent = `คำตอบของคุณ ${player.firstName} ${player.lastName} / Your message`;
+    resultTitle.textContent = `คำสอนที่ถูกเลือกมาสำหรับคุณ ${player.firstName} ${player.lastName} / This quote has been chosen for you`;
     quoteEN.textContent = row.Quote || '';
     quoteTH.textContent = row.Translated || '(Thai translation unavailable / ยังไม่มีคำแปล)';
 
@@ -604,8 +604,11 @@ saveCard?.addEventListener('click', async () => {
     const filename = `LeelaCard-${f}-${l}-${qid}-${stamp}.png`;
 
     const a = document.createElement('a');
+     
     a.href = dataUrl; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
+
+
     playAgain.disabled = false;
 
   } catch (err) {
@@ -677,24 +680,6 @@ form?.addEventListener('submit', async (e) => {
   });
 })();
 
-// Play again
-// playAgain?.addEventListener('click', () => {
-//   resultCard.hidden = true;
-//   quoteEN.textContent = '';
-//   quoteTH.textContent = '';
-//   resultMeta.textContent = '';
-
-//   const now = Date.now();
-//   const remain = msLeft(now);
-//   if(remain > 0){
-//     hideSpin();
-//     cooldownNote.classList.remove('hidden');
-//     startCountdown(remain);
-//   } else {
-//     cooldownNote.classList.add('hidden');
-//     showSpin();
-//   }
-// });
 playAgain?.addEventListener('click', () => {
   // 💡 NEW: ถ้าปุ่มถูก disable อยู่ การคลิกนี้จะไม่ทำงาน
   if(playAgain.disabled) return; 

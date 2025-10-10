@@ -32,10 +32,12 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
 .subtitle{margin:6px 0 0; color:var(--muted)}
 
 .content{padding: 10px 0 24px}
-.card{background:var(--card);border-radius:var(--radius);padding:18px 16px; box-shadow:var(--shadow); margin:14px 0}
+.card{background:var(--card);border-radius:var(--radius);padding:9px 12px; box-shadow:var(--shadow); margin:14px 0}
 .row{display:flex; flex-direction:column; gap:6px; margin:10px 0}
 input[type="text"]{padding:12px 14px;border-radius:12px;border:1px solid #e5e7eb; outline:none; width:100%}
 input[type="text"]:focus{border-color:var(--accent-2); box-shadow:0 0 0 4px var(--ring)}
+/* กัน iOS ซูมตอนโฟกัส */
+input[type="text"], input, select, textarea {font-size: 16px; -webkit-text-size-adjust: 100%;}
 
 .btn{appearance:none; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700}
 .btn-primary{background:linear-gradient(180deg, var(--accent-2), var(--accent)); color:#fff; width:100%}
@@ -70,25 +72,40 @@ blockquote{margin:10px 0; padding-left:12px; border-left:4px solid #f59e0b}
 .btn-spin .btn-sub{ color: rgba(255,255,255,.85); }
 
 /* ปุ่ม Leela ให้เด่นขึ้น */
+/* ปุ่ม Leela เป็นแถว: [spinner][text] */
 .btn-spin{
-  width:100%;
-  margin:8px 0;
-  color:#fff;
-  border:none;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+
+  /* เดิมของคุณ */
+  width:100%; margin:8px 0; color:#fff; border:none;
   background: linear-gradient(180deg, var(--accent-2), var(--accent));
   box-shadow: 0 8px 20px rgba(180,83,9,.25);
-  position:relative;
-  overflow:hidden;
 }
 
-/* สปินเนอร์ในปุ่ม */
-.spinner{
-  display:inline-block; width:18px; height:18px; margin-left:8px;
-  border-radius:50%; border:3px solid rgba(255,255,255,.35); border-top-color:#fff;
-  vertical-align:middle; opacity:0; transform:translateY(2px);
+/* ให้ spinner อยู่ "หน้าข้อความ" จริงๆ */
+.btn-spin .spinner{
+  order: 1;                 /* มาก่อนข้อความ */
+  z-index: 1;               /* บนสุด ไม่โดนทับ */
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.35); border-top-color: #fff;
+  opacity: 0; transform: translateY(2px);
 }
-.btn-spin.is-spinning .spinner{ opacity:1; animation: spin var(--spin-speed, .9s) linear infinite; }
-@keyframes spin{ to{ transform:translateY(2px) rotate(360deg); } }
+.btn-spin .btn-text{ order: 2; display:flex; flex-direction:column; }
+.btn-spin .btn-title{ font-size:1.08rem; font-weight:800; line-height:1.2; }
+.btn-spin .btn-sub{ color: rgba(255,255,255,.85); font-size:.92rem; }
+
+/* เวลา spinning ให้แสดงและหมุน */
+.btn-spin.is-spinning .spinner{
+  opacity: 1;
+  animation: spin var(--spin-speed, .9s) linear infinite;
+}
+@keyframes spin{ to{ transform: translateY(2px) rotate(360deg); } }
+
 
 /* ไฮไลต์ปุ่มหลัง Play Again */
 .btn-spin.pulse{
@@ -98,6 +115,18 @@ blockquote{margin:10px 0; padding-left:12px; border-left:4px solid #f59e0b}
   0%{ box-shadow:0 0 0 0 rgba(245,158,11,.55); }
   70%{ box-shadow:0 0 0 12px rgba(245,158,11,0); }
   100%{ box-shadow:0 0 0 0 rgba(245,158,11,0); }
+}
+
+/* ล็อกไม่ให้ select/callout เวลา long-press */
+.btn, .btn * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ป้องกัน double-tap zoom/gesture แปลก ๆ บน mobile ระหว่างกดค้าง */
+#spinButton{
+  touch-action: manipulation;   /* ตัด gesture ซูม/แพนส่วนเกิน */
 }
 
 /* ปุ่มกดค้างมี feedback */
@@ -147,7 +176,7 @@ blockquote{margin:10px 0; padding-left:12px; border-left:4px solid #f59e0b}
 /* ---------- เพิ่มระยะขอบของการ์ดบนมือถือ (หน้าจอดู) ---------- */
 .result-card{
   background:#fff;          /* สำคัญมาก */
-  padding:16px;
+  padding:8px;
   border-radius:16px;
 }
 @media (max-width: 860px){

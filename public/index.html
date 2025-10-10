@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title>Sahaja Yoga Leela Game</title>
   <link rel="stylesheet" href="./styles/main.css" />
 </head>
@@ -45,10 +45,12 @@
         <div class="player-name" id="playerName"></div>
 
         <!-- ปุ่มเล่น (ซ่อนได้หลังเฉลย) -->
-        <button id="spinButton" class="btn btn-spin" aria-live="polite">
-          <span class="btn-title">Play Leela Game</span>
-          <span class="btn-sub">Press & hold to spin — release to reveal</span>
+        <button id="spinButton" class="btn btn-spin">
           <span class="spinner" aria-hidden="true"></span>
+          <span class="btn-text">
+            <span class="btn-title">Play Leela Game</span>
+            <span class="btn-sub">Hold to spin / กดค้างเพื่อสุ่ม</span>
+          </span>
         </button>
 
         <!-- โชว์ข้อความคูลดาวน์/เคานต์ดาวน์ -->
@@ -84,7 +86,7 @@
                 <img id="exImage" alt="Shri Mataji">
               </div>
               <div class="ex-title">Sahaja Yoga Leela Game</div>
-              <div class="ex-sub">คำตอบของคุณ <span id="exName"></span> / Your message</div>
+              <div class="ex-sub">คำสอนที่ถูกเลือกสำหรับคุณ <span id="exName"></span> / The quote has been chosing for you today. </div>
             </div>
 
             <div class="ex-quote">
