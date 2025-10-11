@@ -148,7 +148,8 @@ function renderExistingResult({ row, imgPath, ts }){
   resultImage.loading  = 'eager';
   resultImage.onerror  = () => { resultImage.onerror = null; resultImage.src = PLACEHOLDER_IMG; };
   resultImage.src      = imgPath;
-
+  enableSaveNow();
+  resultImage.addEventListener('load', enableSaveNow, { once:true });
   // ภาพฝั่ง export (ถ้ามี)
   if (exImage){
     exImage.crossOrigin = 'anonymous';
@@ -180,6 +181,7 @@ function renderExistingResult({ row, imgPath, ts }){
     cooldownNote.classList.add('hidden');
     playAgain?.classList.remove('hidden');
     playAgain.disabled = true; // ให้ผู้ใช้เซฟก่อน
+    enableSaveNow();
   }
 
   // อัพเดต lastResult ให้ชื่อไฟล์เซฟถูกต้อง
@@ -195,6 +197,12 @@ function secureRandomInt(n){
     return u32[0] % n;
   }
   return Math.floor(Math.random() * n);
+}
+
+function enableSaveNow(){
+  if (!saveCard) return;
+  saveCard.disabled = false;
+  saveCard.classList.remove('is-disabled');
 }
 
 function waitNextFrame(){ return new Promise(r => requestAnimationFrame(()=>r())); }
@@ -577,6 +585,9 @@ async function revealLeelaResultOnce(){
       resultImage.onerror  = () => { resultImage.onerror = null; resultImage.src = PLACEHOLDER_IMG; };
       resultImage.src      = inlinedImg;
 
+      enableSaveNow();
+      resultImage.addEventListener('load', enableSaveNow, { once: true });  
+
       if (exImage){
         exImage.decoding = 'sync';
         exImage.loading  = 'eager';
@@ -954,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cfgTesting){ cfgTesting.checked = true; cfgTesting.disabled = true; }
     if (cfgDailyLock){ cfgDailyLock.checked = false; cfgDailyLock.disabled = true; }
   }
-
+  enableSaveNow();            // ให้ปุ่มพร้อมเสมอ
   loadData();
   attachHoldToSpin();
 });
