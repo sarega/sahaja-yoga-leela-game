@@ -705,7 +705,7 @@ async function revealLeelaResultOnce(){
 saveCard?.addEventListener('click', async () => {
   if (resultCard.hidden) return;
 
-  saveCard.disabled = true;
+  saveCard.disabled = false;
   const oldLabel = saveCard.textContent;
   saveCard.textContent = 'Saving...';
   console.log('[DEBUG-SAVE] Save initiated. Applying 2-Pass Render Fix for Safari.');
@@ -880,7 +880,7 @@ form?.addEventListener('submit', async (e) => {
   // เริ่มต้นเป็นโหมดยังไม่มีผลลัพธ์
   playArea.classList.remove('has-result');
   resultCard.hidden = true;
-  if (saveCard) saveCard.disabled = true;
+  // if (saveCard) saveCard.disabled = true;
   if (playAgain) playAgain.disabled = true;
 
   window.scrollTo({top: playArea.offsetTop - 12, behavior: 'smooth'});
